@@ -4,6 +4,11 @@ import React from "react";
 import { USER_GET } from "@/functions/api";
 import { IAuthenticatedUser } from "@/@types/authUser.type";
 
+type FetchUserResult = {
+  user: IAuthenticatedUser | null;
+  unauthorized: boolean;
+};
+
 export type IUserContext = {
   user: IAuthenticatedUser | null;
   isLoading: boolean;
@@ -20,14 +25,37 @@ export const UserContext = React.createContext<IUserContext>(
   initialUserContextValue
 );
 
-async function fetchUser(): Promise<IAuthenticatedUser | null> {
+async function fetchUser(): Promise<FetchUserResult> {
   try {
     const { url, options } = USER_GET();
     const response = await fetch(url, options);
+
+    if (response.status === 401 || response.status === 403) {
+      return {
+        user: null,
+        unauthorized: true,
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        user: null,
+        unauthorized: false,
+      };
+    }
+
     const json = await response.json();
-    return json?.user ?? null;
+    const user = json?.user ?? null;
+
+    return {
+      user,
+      unauthorized: !user,
+    };
   } catch {
-    return null;
+    return {
+      user: null,
+      unauthorized: false,
+    };
   }
 }
 
@@ -40,27 +68,36 @@ export async function loadUser() {
   if (setIsLoadingGlobal && setUserStateGlobal) {
     setIsLoadingGlobal(true);
 
+    let cachedUser: IAuthenticatedUser | null = null;
     const local = localStorage.getItem("user");
     if (local) {
       try {
-        const user = JSON.parse(local) as IAuthenticatedUser;
-        setUserStateGlobal(user);
-        setIsLoadingGlobal(false);
-        return;
+        cachedUser = JSON.parse(local) as IAuthenticatedUser;
+        setUserStateGlobal(cachedUser);
       } catch {
         localStorage.removeItem("user");
+        setUserStateGlobal(null);
       }
-    }
-
-    const user = await fetchUser();
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
     } else {
-      localStorage.removeItem("user");
+      setUserStateGlobal(null);
     }
 
-    setUserStateGlobal(user);
-    setIsLoadingGlobal(false);
+    try {
+      const { user, unauthorized } = await fetchUser();
+
+      if (unauthorized) {
+        localStorage.removeItem("user");
+        setUserStateGlobal(null);
+        return;
+      }
+
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+        setUserStateGlobal(user);
+      }
+    } finally {
+      setIsLoadingGlobal(false);
+    }
   }
 }
 
