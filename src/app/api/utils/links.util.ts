@@ -7,12 +7,14 @@ export function getStudentLinks(registrationId: string): {
   docs: string;
   schedule: string;
   assessments: string;
+  notas: string;
 } {
   return {
     profile: `${BASE_URL}/aluno/aluno/perfil/perfil.action`,
     docs: `${BASE_URL}/aluno/relatorio/relatorios.action?matricula=${registrationId}`,
     schedule: `${BASE_URL}/aluno/aluno/quadrohorario/menu.action?matricula=${registrationId}`,
     assessments: `${BASE_URL}/aluno/aluno/nota/nota.action?matricula=${registrationId}`,
+    notas: `${BASE_URL}/aluno/aluno/nota/nota.action?matricula=${registrationId}`,
   };
 }
 
