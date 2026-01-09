@@ -67,3 +67,15 @@ export function STUDENT_SCHEDULE_GET(studentId: string) {
     },
   };
 }
+
+export function CPA_STATUS_GET() {
+  return {
+    url: `${API_BASE_URL}/v1/login/cpa`,
+    options: {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store" as RequestCache,
+    },
+  };
+}

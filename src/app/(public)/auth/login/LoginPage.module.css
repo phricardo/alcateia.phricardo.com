@@ -13,3 +13,14 @@
 .loginWrapper .header a {
   font-size: 0.9rem;
 }
+
+.cpaNotice {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #f97316;
+  background: #fff7ed;
+  color: #9a3412;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}

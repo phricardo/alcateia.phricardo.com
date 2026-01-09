@@ -6,6 +6,9 @@ import { IAuthenticatedUser } from "@/@types/authUser.type";
 import { IActionResponse } from "@/@types/actionResponse.type";
 import handleActionError from "@/functions/handleActionError";
 
+const CPA_ERROR_MESSAGE =
+  "Login temporariamente indisponível devido ao período de CPA. Tente novamente em alguns dias.";
+
 export default async function LoginAction(
   state: {},
   formData: FormData
@@ -20,7 +23,12 @@ export default async function LoginAction(
     const response = await fetch(url, options);
 
     const json = await response.json();
-    if (!response.ok) throw new Error(json.error);
+    if (!response.ok) {
+      if (response.status === 503) {
+        throw new Error(CPA_ERROR_MESSAGE);
+      }
+      throw new Error(json.error || "Tente novamente mais tarde.");
+    }
 
     cookies().set("CEFETID_SSO", json.cookies.SSO.value, {
       httpOnly: true,
