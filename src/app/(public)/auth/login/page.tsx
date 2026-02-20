@@ -14,7 +14,7 @@ import { loadUser } from "@/contexts/user-context";
 const LOGIN_BLOCKED = true;
 
 const LOGIN_BLOCKED_MESSAGE =
-  "O Portal do Aluno foi atualizado recentemente e algumas informações agora são carregadas dinamicamente. Estamos ajustando a integração para restabelecer o acesso à matrícula o mais rápido possível.";
+  "O Portal do Aluno foi atualizado e temporariamente não conseguimos acessar sua matrícula automaticamente. Estamos ajustando a integração. Tente novamente mais tarde.";
 
 export default function LoginPage() {
   const router = useRouter();
