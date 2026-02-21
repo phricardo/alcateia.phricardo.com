@@ -105,7 +105,7 @@ export default function IndexPage() {
     <div className={styles.indexWrapper}>
       {!isLoading && user && (
         <div className={styles.loggedUserBanner} role="status">
-          A carteirinha está temporariamente desligada em razão de integrao
+          A carteirinha está temporariamente desligada em razão de integração
           com o sistema do Cefet/RJ.
         </div>
       )}
