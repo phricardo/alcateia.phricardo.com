@@ -56,14 +56,6 @@ export default function IndexPage() {
     },
   ];
 
-  const privateLinks: LinkItem[] = [
-    {
-      label: "Minhas Aulas",
-      href: "/aluno/aulas",
-      icon: <ChalkboardSimple />,
-    },
-  ];
-
   const campusSpecificLinks: LinkItem[] =
     !isLoading && user?.campus === "NOVA_FRIBURGO"
       ? [
@@ -105,7 +97,6 @@ export default function IndexPage() {
 
   const allLinks: LinkItem[] = [
     ...commonLinks,
-    ...(!isLoading && user ? privateLinks : []),
     ...campusSpecificLinks,
     ...externalLinks,
   ];
