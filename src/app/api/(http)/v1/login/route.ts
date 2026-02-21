@@ -60,20 +60,14 @@ export async function POST(request: NextRequest) {
         }
         continue;
       }
-
+  
       const nextResponse = NextResponse.json(
         {
           status: { ok: true },
+          cookies: { SSO },
         },
         { status: 200 },
       );
-
-      nextResponse.cookies.set("CEFETID_SSO", SSO.value, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-        path: "/",
-      });
 
       return nextResponse;
     }
