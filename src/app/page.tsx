@@ -57,7 +57,7 @@ export default function IndexPage() {
   ];
 
   const campusSpecificLinks: LinkItem[] =
-    !isLoading && user?.campus === "NOVA_FRIBURGO"
+    !isLoading && user?.campus === "UNED Nova Friburgo"
       ? [
           {
             label: (
@@ -103,6 +103,12 @@ export default function IndexPage() {
 
   return (
     <div className={styles.indexWrapper}>
+      {!isLoading && user && (
+        <div className={styles.loggedUserBanner} role="status">
+          A carteirinha est� temporariamente desligada em raz�o de integra��o
+          com o sistema do Cefet/RJ.
+        </div>
+      )}
       {!isLoading && !user && <AdPlaceholderImage />}
       <div className={styles.links}>
         <ul>
