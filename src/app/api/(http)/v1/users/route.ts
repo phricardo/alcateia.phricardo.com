@@ -2,7 +2,6 @@ import axios from "axios";
 import { NextRequest, NextResponse } from "next/server";
 import {
   parseIndex,
-  parseProfile,
   parseReports,
   resolveCefetCampus,
 } from "@/app/api/utils/parsers";
@@ -20,13 +19,7 @@ export async function GET(request: NextRequest) {
       headers: { Cookie: cookieHeader },
     });
 
-    const profileResponse = await axios.get(
-      `${BASE_URL}/aluno/aluno/perfil/perfil.action`,
-      { headers: { Cookie: cookieHeader } },
-    );
-
     const indexData = parseIndex(indexResponse.data);
-    const profileData = parseProfile(profileResponse.data);
 
     const reportsResponse = await axios.get(
       `${BASE_URL}/aluno/aluno/relatorio/relatorios.action?matricula=${indexData.studentId}`,
@@ -38,17 +31,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         user: {
-          name: indexData.name ?? "Não encontrado",
+          name: indexData.name,
           studentId: indexData.studentId,
           studentPublicId: "Não encontrado",
-          document: {
-            type: "NATURAL_PERSON",
-            id: profileData.cpf,
-          },
           course: reportsData.courseLabel,
           currentPeriod: reportsData.currentPeriod,
-          campus: resolveCefetCampus(reportsData.courseLabel),
-          reportsData,
+          campus: resolveCefetCampus(reportsData.courseLabel)
         },
       },
       { status: 200 },
