@@ -10,11 +10,7 @@ import PasswordInput from "@/components/PasswordInput/PasswordInput";
 import LoginAction from "@/actions/login.action";
 import toast from "react-hot-toast";
 import { loadUser } from "@/contexts/user-context";
-
-const LOGIN_BLOCKED = true;
-
-const LOGIN_BLOCKED_MESSAGE =
-  "O Portal do Aluno foi atualizado e temporariamente não conseguimos acessar sua matrícula automaticamente. Estamos ajustando a integração. Tente novamente mais tarde.";
+import { CPA_STATUS_GET } from "@/functions/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,6 +19,7 @@ export default function LoginPage() {
     error: null,
     data: null,
   });
+  const [cpaActive, setCpaActive] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
     if (state && state.ok) {
@@ -37,6 +34,27 @@ export default function LoginPage() {
     }
   }, [state]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function checkCpa() {
+      try {
+        const { url, options } = CPA_STATUS_GET();
+        const res = await fetch(url, options);
+        const json = await res.json();
+        if (!cancelled) setCpaActive(Boolean(json.underCpa));
+      } catch {
+        if (!cancelled) setCpaActive(false);
+      }
+    }
+
+    checkCpa();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className={styles.loginWrapper}>
       <div className={styles.header}>
@@ -49,9 +67,10 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {LOGIN_BLOCKED && (
+      {cpaActive && (
         <div className={styles.cpaNotice} role="alert">
-          {LOGIN_BLOCKED_MESSAGE}
+          O login esta temporariamente indisponivel durante o periodo de CPA do
+          CEFET/RJ. Tente novamente em alguns dias.
         </div>
       )}
 
@@ -63,7 +82,7 @@ export default function LoginPage() {
             name="username"
             id="username"
             required
-            disabled={LOGIN_BLOCKED || undefined}
+            disabled={cpaActive || undefined}
           />
         </label>
 
@@ -73,7 +92,7 @@ export default function LoginPage() {
             name="password"
             id="password"
             required
-            disabled={LOGIN_BLOCKED || undefined}
+            disabled={cpaActive || undefined}
           />
         </label>
 
@@ -87,7 +106,7 @@ export default function LoginPage() {
           </Link>
         </p>
 
-        <SubmitButton disabled={LOGIN_BLOCKED || undefined}>Entrar</SubmitButton>
+        <SubmitButton disabled={cpaActive || undefined}>Entrar</SubmitButton>
       </form>
     </div>
   );

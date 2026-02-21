@@ -99,11 +99,11 @@ export const extractStudentInfo = (html: string): StudentInfo => {
 
 export const extractUser = (
   html: string
-): { name: string; studentId: string } => {
+): { name: string } => {
   const $ = cheerio.load(html);
   const name = $("span#menu > button").text().trim();
-  const studentId = $("#matricula").val() as string;
-  return { name, studentId };
+  // const studentId = $("#matricula").val() as string;
+  return { name };
 };
 
 export const extractCPF = (html: string): string | null => {

@@ -9,15 +9,11 @@ import {
   Database,
   ArrowSquareOut,
   Newspaper,
-  IdentificationCard,
   ChalkboardSimple,
 } from "@phosphor-icons/react";
 import { UserContext } from "@/contexts/user-context";
 import AdPlaceholderImage from "@/components/AdPlaceholderImage/AdPlaceholderImage";
-import { StudentCardSummary } from "@/components/StudentCardSummary/StudentCardSummary";
-
 import styles from "./page.module.css";
-import { LatestNews } from "@/components/LatestNews/LatestNews";
 
 type LinkItem = {
   label: React.ReactNode;
@@ -61,11 +57,6 @@ export default function IndexPage() {
   ];
 
   const privateLinks: LinkItem[] = [
-    {
-      label: "Carteirinha",
-      href: "/aluno/carteirinha",
-      icon: <IdentificationCard />,
-    },
     {
       label: "Minhas Aulas",
       href: "/aluno/aulas",
@@ -122,9 +113,6 @@ export default function IndexPage() {
   return (
     <div className={styles.indexWrapper}>
       {!isLoading && !user && <AdPlaceholderImage />}
-      {!isLoading && user && <StudentCardSummary user={user} />}
-      {!isLoading && user && <LatestNews campus={user.campus ?? undefined} />}
-
       <div className={styles.links}>
         <ul>
           {allLinks.map(({ label, href, icon, external }, index) => (

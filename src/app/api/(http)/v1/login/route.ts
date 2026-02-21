@@ -2,46 +2,12 @@ import axios from "axios";
 import tough from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  BASE_URL,
-  capitalizeName,
-  extractPnotifyText,
-  extractUser,
-} from "@/app/api/utils/links.util";
+import { BASE_URL, extractPnotifyText } from "@/app/api/utils/links.util";
 
 const MAX_RETRIES = 2;
+
 const CPA_BLOCK_MESSAGE =
   "Login temporariamente indisponível devido ao período de CPA. Tente novamente em alguns dias.";
-
-function isCpaUrl(url: string) {
-  return url.startsWith("https://cpa.cefet-rj.br/");
-}
-
-async function fetchIndexOrThrowCPA(
-  client: ReturnType<typeof wrapper>,
-  urlToOpen: string
-) {
-  const res = await client.get(urlToOpen, {
-    maxRedirects: 0,
-    validateStatus: (s) => s >= 200 && s < 400,
-  });
-
-  if (res.status < 300 || res.status >= 400) return res;
-
-  const location = (res.headers?.location as string | undefined) ?? "";
-  if (!location) return res;
-
-  const redirectUrl = new URL(location, urlToOpen).toString();
-
-  if (isCpaUrl(redirectUrl)) {
-    throw new Error(CPA_BLOCK_MESSAGE);
-  }
-
-  return client.get(redirectUrl, {
-    maxRedirects: 10,
-    validateStatus: (s) => s >= 200 && s < 500,
-  });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!username || !password) {
       return NextResponse.json(
         { error: "Informe usuário e senha." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,36 +33,26 @@ export async function POST(request: NextRequest) {
             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         },
         validateStatus: (s) => s >= 200 && s < 500,
-      })
+      }),
     );
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const response = await client.post(
         `${BASE_URL}/aluno/j_security_check`,
         `j_username=${encodeURIComponent(
-          username
+          username,
         )}&j_password=${encodeURIComponent(password)}`,
         {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           maxRedirects: 10,
-        }
+        },
       );
 
       const pnotifyText = extractPnotifyText(response.data);
       if (pnotifyText) throw new Error(pnotifyText);
 
-      const indexResponse = await fetchIndexOrThrowCPA(
-        client,
-        `${BASE_URL}/aluno/index.action`
-      );
-
       const cookies = cookieJar.getCookiesSync(`${BASE_URL}/aluno/`);
       const SSO = cookies.find((cookie) => cookie.key === "JSESSIONIDSSO");
-
-      const { name, studentId } = extractUser(indexResponse.data);
-      if (!studentId) {
-        throw new Error("Falha ao autenticar. Matrícula não encontrada.");
-      }
 
       if (!SSO) {
         if (attempt === MAX_RETRIES) {
@@ -108,13 +64,8 @@ export async function POST(request: NextRequest) {
       const nextResponse = NextResponse.json(
         {
           status: { ok: true },
-          student: {
-            name: capitalizeName(name),
-            studentId,
-          },
-          cookies: { SSO },
         },
-        { status: 200 }
+        { status: 200 },
       );
 
       nextResponse.cookies.set("CEFETID_SSO", SSO.value, {
