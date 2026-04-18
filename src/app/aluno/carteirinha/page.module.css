@@ -8,54 +8,55 @@
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.75rem;
 }
 
-.swipeHint {
+.faceTabs {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  color: #8b8f95;
-  font-size: 0.82rem;
-  letter-spacing: 0.02em;
+  padding: 0.2rem;
+  border: 1px solid #d7dbe0;
+  border-radius: 999px;
+  background: #fbfcfd;
 }
 
-.discreteButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid #ddd7cb;
+.faceTab {
+  padding: 0.45rem 0.85rem;
   border-radius: 999px;
-  background: #fbf9f4;
-  color: #6d737c;
+  background: transparent;
+  color: #7d838b;
   font-size: 0.82rem;
   font-weight: 600;
   text-transform: none;
 }
 
-.cardRail {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 100%;
-  gap: 0.9rem;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  padding-bottom: 0.35rem;
+.faceTab:hover,
+.faceTab:focus-visible {
+  background: #f2f4f7;
+  color: #676f79;
 }
 
-.cardRail::-webkit-scrollbar {
-  display: none;
+.faceTabActive {
+  background: #e8ecf1;
+  color: #4d5560;
+}
+
+.faceTabActive:hover,
+.faceTabActive:focus-visible {
+  background: #dde3ea;
+  color: #48505b;
+}
+
+.screenCard {
+  display: block;
 }
 
 .cardFace {
-  scroll-snap-align: start;
   min-height: 34rem;
   border-radius: 1.6rem;
-  border: 1px solid #e2ddd2;
-  background: #fbf8f2;
+  border: 1px solid #dde2e8;
+  background: #f7f9fb;
   padding: 1.2rem;
   display: flex;
   flex-direction: column;
@@ -71,27 +72,14 @@
 }
 
 .frontHeader {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.9rem;
-  align-items: center;
-}
-
-.logoShell {
-  width: 4.9rem;
-  height: 4.9rem;
-  border-radius: 1.2rem;
-  border: 1px solid #e4ddd1;
-  background: #fffdf9;
-  display: grid;
-  place-items: center;
-  padding: 0.65rem;
-  overflow: hidden;
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-items: flex-start;
 }
 
 .logo {
-  width: 100%;
+  width: clamp(8.2rem, 30vw, 11rem);
   height: auto;
   object-fit: contain;
 }
@@ -130,8 +118,8 @@
   gap: 0.75rem;
   padding: 1rem;
   border-radius: 1.2rem;
-  background: #f3efe7;
-  border: 1px solid #e7e0d5;
+  background: #f0f3f6;
+  border: 1px solid #dfe4ea;
   align-items: end;
 }
 
@@ -150,8 +138,8 @@
   gap: 0.35rem;
   padding: 0.5rem 0.7rem;
   border-radius: 999px;
-  background: #f7f4ed;
-  border: 1px solid #e3ddd2;
+  background: #fafbfd;
+  border: 1px solid #dce2e8;
   color: #69707a;
   font-size: 0.84rem;
   font-weight: 600;
@@ -170,8 +158,8 @@
   gap: 0.38rem;
   padding: 0.95rem 1rem;
   border-radius: 1.1rem;
-  border: 1px solid #e5dfd4;
-  background: #fffdf9;
+  border: 1px solid #dfe4ea;
+  background: #ffffff;
   min-width: 0;
 }
 
@@ -213,13 +201,13 @@
 }
 
 .qrFrame {
-  min-height: 12rem;
-  border-radius: 1.2rem;
-  border: 1px solid #e5dfd4;
-  background: #fffdf9;
-  display: grid;
-  place-items: center;
-  padding: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  padding: 0;
+  background: transparent;
+  border: none;
 }
 
 .actionsRow {
@@ -231,11 +219,17 @@
 .inlineButton {
   padding: 0.55rem 0.75rem;
   border-radius: 999px;
-  background: #f3efe7;
+  background: #eef2f6;
   color: #616975;
   text-transform: none;
   font-size: 0.84rem;
   font-weight: 600;
+}
+
+.inlineButton:hover,
+.inlineButton:focus-visible {
+  background: #e6ebf1;
+  color: #565e69;
 }
 
 .inlineLink {
@@ -243,12 +237,19 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.55rem 0.75rem;
-  border: 1px solid #e1dbcf;
+  border: 1px solid #d9dfe6;
   border-radius: 999px;
-  background: #fffdf9;
+  background: #ffffff;
   color: #67707a;
   font-size: 0.84rem;
   font-weight: 600;
+}
+
+.inlineLink:hover,
+.inlineLink:focus-visible {
+  background: #f3f6f9;
+  border-color: #cfd6de;
+  color: #58616c;
 }
 
 .emptyState {
@@ -259,8 +260,8 @@
   text-align: center;
   padding: 2rem 1.25rem;
   border-radius: 1.25rem;
-  border: 1px solid #e2ddd2;
-  background: #fbf8f2;
+  border: 1px solid #dde2e8;
+  background: #f7f9fb;
 }
 
 .emptyState p {
@@ -272,7 +273,7 @@
 .loadingCard {
   height: 34rem;
   border-radius: 1.6rem;
-  background: linear-gradient(90deg, #f3efe7 0%, #fbf8f2 50%, #f3efe7 100%);
+  background: linear-gradient(90deg, #edf1f5 0%, #f8fafc 50%, #edf1f5 100%);
   background-size: 200% 100%;
   animation: pulse 1.4s linear infinite;
 }
@@ -289,7 +290,6 @@
 @media (max-width: 700px) {
   .toolbar {
     align-items: flex-start;
-    flex-direction: row;
   }
 
   .frontHeader,
@@ -312,5 +312,9 @@
   .titleBlock h2,
   .backHeader h3 {
     font-size: 1.7rem;
+  }
+
+  .logo {
+    width: clamp(7.8rem, 38vw, 9.8rem);
   }
 }
