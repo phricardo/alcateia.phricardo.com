@@ -9,7 +9,7 @@ import styles from "./TabMenu.module.css";
 
 export default function TabMenu() {
   const pathname = usePathname();
-  const { user, isLoading } = React.useContext(UserContext);
+  const { user, isLoading, hasStudentCard } = React.useContext(UserContext);
 
   const tabs = [
     {
@@ -17,7 +17,7 @@ export default function TabMenu() {
       href: "/",
       icon: House,
     },
-    !isLoading && user
+    !isLoading && user && hasStudentCard
       ? {
           label: "Carteirinha",
           href: "/aluno/carteirinha",

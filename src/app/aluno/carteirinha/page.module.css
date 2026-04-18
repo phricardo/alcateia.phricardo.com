@@ -1,0 +1,316 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-bottom: 4rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.swipeHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #8b8f95;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+.discreteButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #ddd7cb;
+  border-radius: 999px;
+  background: #fbf9f4;
+  color: #6d737c;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.cardRail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  gap: 0.9rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 0.35rem;
+}
+
+.cardRail::-webkit-scrollbar {
+  display: none;
+}
+
+.cardFace {
+  scroll-snap-align: start;
+  min-height: 34rem;
+  border-radius: 1.6rem;
+  border: 1px solid #e2ddd2;
+  background: #fbf8f2;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.frontFace {
+  justify-content: space-between;
+}
+
+.backFace {
+  justify-content: flex-start;
+}
+
+.frontHeader {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.logoShell {
+  width: 4.9rem;
+  height: 4.9rem;
+  border-radius: 1.2rem;
+  border: 1px solid #e4ddd1;
+  background: #fffdf9;
+  display: grid;
+  place-items: center;
+  padding: 0.65rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.logo {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.titleBlock h2,
+.backHeader h3 {
+  color: #24303e;
+  font-size: 1.9rem;
+  line-height: 1.05;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.titleBlock p,
+.helperText {
+  color: #7f858d;
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.label {
+  display: inline-block;
+  color: #90959c;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.identityBand {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: #f3efe7;
+  border: 1px solid #e7e0d5;
+  align-items: end;
+}
+
+.identityBand strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #253240;
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.periodBadge,
+.validityChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 999px;
+  background: #f7f4ed;
+  border: 1px solid #e3ddd2;
+  color: #69707a;
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.infoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1.1rem;
+  border: 1px solid #e5dfd4;
+  background: #fffdf9;
+  min-width: 0;
+}
+
+.infoCard strong {
+  color: #26313e;
+  line-height: 1.35;
+  font-size: 0.96rem;
+  word-break: break-word;
+}
+
+.mutedStrong {
+  color: #747c86 !important;
+  font-size: 0.84rem !important;
+}
+
+.infoWide {
+  grid-column: 1 / -1;
+}
+
+.backHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.backContent {
+  display: grid;
+  grid-template-columns: 10.5rem 1fr;
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.qrColumn,
+.validationColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.qrFrame {
+  min-height: 12rem;
+  border-radius: 1.2rem;
+  border: 1px solid #e5dfd4;
+  background: #fffdf9;
+  display: grid;
+  place-items: center;
+  padding: 0.8rem;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.inlineButton {
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: #f3efe7;
+  color: #616975;
+  text-transform: none;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #e1dbcf;
+  border-radius: 999px;
+  background: #fffdf9;
+  color: #67707a;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1.25rem;
+  border-radius: 1.25rem;
+  border: 1px solid #e2ddd2;
+  background: #fbf8f2;
+}
+
+.emptyState p {
+  max-width: 28rem;
+  line-height: 1.5;
+  color: #6e7580;
+}
+
+.loadingCard {
+  height: 34rem;
+  border-radius: 1.6rem;
+  background: linear-gradient(90deg, #f3efe7 0%, #fbf8f2 50%, #f3efe7 100%);
+  background-size: 200% 100%;
+  animation: pulse 1.4s linear infinite;
+}
+
+@keyframes pulse {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: row;
+  }
+
+  .frontHeader,
+  .identityBand,
+  .backContent,
+  .infoGrid,
+  .backHeader {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .identityBand {
+    align-items: flex-start;
+  }
+
+  .cardFace {
+    min-height: 37rem;
+  }
+
+  .titleBlock h2,
+  .backHeader h3 {
+    font-size: 1.7rem;
+  }
+}

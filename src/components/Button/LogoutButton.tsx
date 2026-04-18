@@ -18,7 +18,7 @@ export default function LogoutButton() {
   React.useEffect(() => {
     const domLoaded = typeof window !== "undefined";
     if (state.ok && domLoaded) {
-      localStorage.removeItem("user");
+      setUser(null);
       window.location.reload();
     }
   }, [state, setUser]);

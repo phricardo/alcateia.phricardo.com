@@ -156,3 +156,130 @@ export function resolveCefetCampus(courseLabel?: string | null) {
 
     return CAMPUS_MAP[sigla] ?? sigla;
 }
+
+type EnrollmentCertificateDiscipline = {
+    code: string;
+    classGroup: string;
+    courseCode: string;
+    name: string;
+    credits: number | null;
+    workloadHours: number | null;
+};
+
+type EnrollmentCertificateData = {
+    studentRegistration: string | null;
+    studentName: string | null;
+    semesterLabel: string | null;
+    courseLabel: string | null;
+    courseVersion: string | null;
+    authenticationCode: string | null;
+    authenticationUrl: string | null;
+    validityDays: number | null;
+    issuedAt: string | null;
+    totalCredits: number | null;
+    totalWorkloadHours: number | null;
+    disciplines: EnrollmentCertificateDiscipline[];
+};
+
+function toNullableNumber(v?: string | null) {
+    const cleaned = clean(v);
+    if (!cleaned) return null;
+
+    const parsed = Number(cleaned.replace(/[^\d]/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parseEnrollmentCertificateText(text: string): EnrollmentCertificateData {
+    const normalizedText = text.replace(/\r/g, "");
+    const lines = normalizedText
+        .split("\n")
+        .map((line) => clean(line))
+        .filter(Boolean);
+
+    const result: EnrollmentCertificateData = {
+        studentRegistration: null,
+        studentName: null,
+        semesterLabel: null,
+        courseLabel: null,
+        courseVersion: null,
+        authenticationCode: null,
+        authenticationUrl: null,
+        validityDays: null,
+        issuedAt: null,
+        totalCredits: null,
+        totalWorkloadHours: null,
+        disciplines: [],
+    };
+
+    for (const line of lines) {
+        if (!result.authenticationCode) {
+            const match = line.match(/Autentica(?:ç|c)[aã]o\s*:\s*([A-Z0-9.]+)/i);
+            if (match?.[1]) result.authenticationCode = clean(match[1]);
+        }
+
+        if (!result.authenticationUrl) {
+            const match = line.match(/Consultar em\s*:\s*(https?:\/\/\S+)/i);
+            if (match?.[1]) result.authenticationUrl = clean(match[1]);
+        }
+
+        if (result.validityDays == null) {
+            const match = line.match(/Validade\s*:\s*(\d+)\s*dia/i);
+            if (match?.[1]) result.validityDays = Number(match[1]);
+        }
+
+        if (!result.issuedAt) {
+            const match = line.match(/Realiza(?:ç|c)[aã]o e\/ou [ÚU]ltima Inclus[aã]o em\s*(\d{2}\/\d{2}\/\d{4})/i);
+            if (match?.[1]) result.issuedAt = match[1];
+        }
+
+        if (!result.studentRegistration || !result.studentName) {
+            const match = line.match(/Aluno\s*:\s*([A-Z0-9]+)\s*-\s*(.+?)(?:\s+Per[íi]odo\s*:|$)/i);
+            if (match) {
+                result.studentRegistration = clean(match[1]);
+                result.studentName = clean(match[2]);
+            }
+        }
+
+        if (!result.semesterLabel) {
+            const match = line.match(/Per[íi]odo\s*:\s*(.+)$/i);
+            if (match?.[1]) result.semesterLabel = clean(match[1]);
+        }
+
+        if (!result.courseLabel) {
+            const match = line.match(/Curso\s*:\s*(.+?)(?:\s+Vers[aã]o\s*:|$)/i);
+            if (match?.[1]) result.courseLabel = clean(match[1]);
+        }
+
+        if (!result.courseVersion) {
+            const match = line.match(/Vers[aã]o\s*:\s*([A-Z0-9.\-]+)/i);
+            if (match?.[1]) result.courseVersion = clean(match[1]);
+        }
+
+        if (result.totalCredits == null || result.totalWorkloadHours == null) {
+            const match = line.match(/Total de Cr[ée]ditos e Carga Hor[aá]ria\s*:\s*(\d+)\s+(\d+)/i);
+            if (match) {
+                result.totalCredits = Number(match[1]);
+                result.totalWorkloadHours = Number(match[2]);
+            }
+        }
+
+        const rowMatch = line.match(
+            /^([A-Z]{3,}\d{3,}[A-Z]{1,})\s+(.+?)\s+([A-Z]{3,}\w*)\s+(.+?)\s+(\d+)\s+(\d+)$/
+        );
+
+        if (rowMatch) {
+            const [, code, classGroup, courseCode, disciplineName, credits, workloadHours] = rowMatch;
+
+            result.disciplines.push({
+                code: clean(code),
+                classGroup: clean(classGroup),
+                courseCode: clean(courseCode),
+                name: clean(disciplineName),
+                credits: toNullableNumber(credits),
+                workloadHours: toNullableNumber(workloadHours),
+            });
+        }
+    }
+
+    return result;
+}

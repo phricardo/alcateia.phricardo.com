@@ -10,6 +10,7 @@ import {
   ArrowSquareOut,
   Newspaper,
   ChalkboardSimple,
+  IdentificationCard,
 } from "@phosphor-icons/react";
 import { UserContext } from "@/contexts/user-context";
 import AdPlaceholderImage from "@/components/AdPlaceholderImage/AdPlaceholderImage";
@@ -23,7 +24,7 @@ type LinkItem = {
 };
 
 export default function IndexPage() {
-  const { user, isLoading } = useContext(UserContext);
+  const { user, isLoading, hasStudentCard } = useContext(UserContext);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -39,6 +40,15 @@ export default function IndexPage() {
   }, []);
 
   const commonLinks: LinkItem[] = [
+    ...(!isLoading && user && hasStudentCard
+      ? [
+          {
+            label: "Carteirinha",
+            href: "/aluno/carteirinha",
+            icon: <IdentificationCard />,
+          },
+        ]
+      : []),
     {
       label: "Notícias",
       href: "/noticias",
@@ -103,12 +113,6 @@ export default function IndexPage() {
 
   return (
     <div className={styles.indexWrapper}>
-      {!isLoading && user && (
-        <div className={styles.loggedUserBanner} role="status">
-          A carteirinha está temporariamente desligada em razão de integração
-          com o sistema do Cefet/RJ.
-        </div>
-      )}
       {!isLoading && !user && <AdPlaceholderImage />}
       <div className={styles.links}>
         <ul>
