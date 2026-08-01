@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
-import { FunnelSimple } from "@phosphor-icons/react";
+import { FunnelSimple, Newspaper } from "@phosphor-icons/react";
 import { formatDate } from "@/utils/formatarData.util";
 import { campusDisplayNames } from "@/utils/constants.util";
 import CopyButton from "@/components/CopyButton/CopyButton";
 import { NewsResponse, NewsItem } from "@/@types/newsResponse.type";
 import { SkeletonLoading } from "@/components/SkeletonLoading/SkeletonLoading";
+import { SystemUnavailable } from "@/components/SystemUnavailable/SystemUnavailable";
+import { useCefetStatus } from "@/hooks/useCefetStatus";
 import styles from "./page.module.css";
 
 type ErrorPayload = {
@@ -22,14 +24,16 @@ export default function NewsPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [data, setData] = useState<NewsResponse | null>(null);
   const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
+  const { checks, isChecking, refresh } = useCefetStatus();
+  const isCefetMainUnavailable = checks.main === false;
 
-  const buildURL = (): string => {
+  const buildURL = React.useCallback((): string => {
     let url = `/api/v1/news?page=${currentPage}`;
     if (selectedCampus) url += `&campus=${selectedCampus}`;
     return url;
-  };
+  }, [currentPage, selectedCampus]);
 
-  const handleFetchResponse = async (
+  const handleFetchResponse = React.useCallback(async (
     response: Response
   ): Promise<NewsResponse> => {
     if (!response.ok) {
@@ -43,18 +47,26 @@ export default function NewsPage() {
       throw new Error(JSON.stringify(errorPayload));
     }
     return (await response.json()) as NewsResponse;
-  };
+  }, []);
 
-  const handleError = (error: unknown) => {
+  const handleError = React.useCallback((error: unknown) => {
     if (error instanceof Error) {
-      const err = JSON.parse(error.message) as ErrorPayload;
-      setError(err);
+      try {
+        const err = JSON.parse(error.message) as ErrorPayload;
+        setError(err);
+      } catch {
+        setError({
+          message: "Serviços temporariamente desligados.",
+          isSearchError: false,
+        });
+      }
     }
-  };
+  }, []);
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const url = buildURL();
       const response = await fetch(url, { cache: "no-store" });
       const data = await handleFetchResponse(response);
@@ -64,11 +76,21 @@ export default function NewsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildURL, handleError, handleFetchResponse]);
 
   useEffect(() => {
+    if (isCefetMainUnavailable) {
+      setLoading(false);
+      setData(null);
+      setError({
+        message: "Serviços temporariamente desligados.",
+        isSearchError: false,
+      });
+      return;
+    }
+
     fetchData();
-  }, [currentPage, selectedCampus]);
+  }, [fetchData, isCefetMainUnavailable]);
 
   useEffect(() => {
     if (error && !error.isSearchError) setData(null);
@@ -90,6 +112,21 @@ export default function NewsPage() {
       setCurrentPage(newPage);
     }, 500);
   };
+
+  const handleRetry = async () => {
+    setError(null);
+    await refresh();
+    await fetchData();
+  };
+
+  const shouldShowUnavailable =
+    isCefetMainUnavailable ||
+    (!loading && Boolean(error && !error.isSearchError)) ||
+    (!loading &&
+      Boolean(data && data.items.length === 0) &&
+      checks.main === false);
+  const shouldShowLoading =
+    loading || (isChecking && (!data || data.items.length === 0));
 
   return (
     <div className={styles.feed}>
@@ -114,13 +151,20 @@ export default function NewsPage() {
       </div>
 
       <div className={styles.newsWrapper}>
-        {loading ? (
+        {shouldShowLoading ? (
           <div className={styles.skeletonWrapper}>
             {Array.from({ length: 5 }).map((_, index) => (
               <SkeletonLoading key={index} height="150px" width="100%" />
             ))}
           </div>
-        ) : !data ? (
+        ) : shouldShowUnavailable ? (
+          <SystemUnavailable
+            icon={<Newspaper weight="duotone" />}
+            title="Notícias indisponíveis"
+            onRetry={handleRetry}
+            isRetrying={isChecking || loading}
+          />
+        ) : !data || data.items.length === 0 ? (
           <p>Nenhum conteúdo encontrado.</p>
         ) : (
           data.items.map((item: NewsItem) => (

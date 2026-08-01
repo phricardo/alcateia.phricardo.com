@@ -1,48 +1,120 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Status = "online" | "parcial" | "offline" | "checking";
 type CheckedStatus = Exclude<Status, "checking">;
+
+type StatusChecks = {
+  main: boolean | null;
+  alunos: boolean | null;
+};
+
+type CefetStatusState = {
+  status: Status;
+  checks: StatusChecks;
+  checkedAt: string | null;
+  isChecking: boolean;
+};
+
+type CefetStatusPayload = {
+  status?: unknown;
+  checks?: {
+    main?: unknown;
+    alunos?: unknown;
+  };
+  checkedAt?: unknown;
+};
+
+const DEFAULT_CHECKS: StatusChecks = {
+  main: null,
+  alunos: null,
+};
 
 function isCheckedStatus(status: unknown): status is CheckedStatus {
   return status === "online" || status === "parcial" || status === "offline";
 }
 
+function normalizeChecks(checks: CefetStatusPayload["checks"]): StatusChecks {
+  return {
+    main: typeof checks?.main === "boolean" ? checks.main : null,
+    alunos: typeof checks?.alunos === "boolean" ? checks.alunos : null,
+  };
+}
+
 export function useCefetStatus() {
-  const [status, setStatus] = useState<Status>("checking");
+  const mountedRef = useRef(false);
+  const [state, setState] = useState<CefetStatusState>({
+    status: "checking",
+    checks: DEFAULT_CHECKS,
+    checkedAt: null,
+    isChecking: true,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
+  const checkStatus = useCallback(async (showChecking = true) => {
+    if (mountedRef.current) {
+      setState((current) => ({
+        ...current,
+        status: showChecking ? "checking" : current.status,
+        isChecking: true,
+      }));
+    }
 
-    const checkStatus = async () => {
-      try {
-        const res = await fetch("/api/v1/cefet-status", {
-          cache: "no-store",
-        });
+    try {
+      const res = await fetch("/api/v1/cefet-status", {
+        cache: "no-store",
+      });
 
-        if (!res.ok) {
-          if (!cancelled) setStatus("offline");
-          return;
+      if (!res.ok) {
+        if (mountedRef.current) {
+          setState({
+            status: "offline",
+            checks: { main: false, alunos: false },
+            checkedAt: null,
+            isChecking: false,
+          });
         }
-
-        const data = await res.json();
-        const nextStatus = isCheckedStatus(data?.status)
-          ? data.status
-          : "offline";
-
-        if (!cancelled) setStatus(nextStatus);
-      } catch (err) {
-        console.error("Erro ao verificar status:", err);
-        if (!cancelled) setStatus("offline");
+        return;
       }
-    };
 
-    checkStatus();
-    const interval = setInterval(checkStatus, 60000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+      const data = (await res.json()) as CefetStatusPayload;
+      const nextStatus = isCheckedStatus(data?.status)
+        ? data.status
+        : "offline";
+      const checkedAt =
+        typeof data?.checkedAt === "string" ? data.checkedAt : null;
+
+      if (mountedRef.current) {
+        setState({
+          status: nextStatus,
+          checks: normalizeChecks(data?.checks),
+          checkedAt,
+          isChecking: false,
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao verificar status:", err);
+      if (mountedRef.current) {
+        setState({
+          status: "offline",
+          checks: { main: false, alunos: false },
+          checkedAt: null,
+          isChecking: false,
+        });
+      }
+    }
   }, []);
 
-  return status;
+  useEffect(() => {
+    mountedRef.current = true;
+    checkStatus(true);
+    const interval = setInterval(() => checkStatus(false), 60000);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
+  }, [checkStatus]);
+
+  return {
+    ...state,
+    refresh: () => checkStatus(true),
+  };
 }

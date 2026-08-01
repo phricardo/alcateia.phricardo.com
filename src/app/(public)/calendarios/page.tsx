@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
-import { FileArrowDown } from "@phosphor-icons/react";
+import { Calendar, FileArrowDown } from "@phosphor-icons/react";
 import { CalendarResponse } from "@/@types/calendarResponse.type";
 import { SkeletonLoading } from "@/components/SkeletonLoading/SkeletonLoading";
+import { SystemUnavailable } from "@/components/SystemUnavailable/SystemUnavailable";
+import { useCefetStatus } from "@/hooks/useCefetStatus";
 import {
   campusCalendarsLinks,
   campusDisplayNames,
@@ -13,39 +15,76 @@ import styles from "./CalendarsPage.module.css";
 
 export default function CalendarsPage() {
   const [loading, setLoading] = useState<boolean>(true);
+  const [hasConnectionError, setHasConnectionError] = useState<boolean>(false);
   const [selectedCampus, setSelectedCampus] = useState<string>("MARACANA");
   const [calendarData, setCalendarData] = useState<CalendarResponse | null>(
     null
   );
+  const { checks, isChecking, refresh } = useCefetStatus();
+  const isCefetMainUnavailable = checks.main === false;
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setHasConnectionError(false);
+
+      if (!campusCalendarsLinks[selectedCampus]) {
+        throw new Error(`Campus link not found for key: ${selectedCampus}`);
+      }
+
+      const response = await fetch(
+        `/api/v1/calendars?url=${campusCalendarsLinks[selectedCampus]}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        throw new Error("Calendar request failed.");
+      }
+
+      const data: CalendarResponse = await response.json();
+      setCalendarData(data);
+    } catch (error: unknown) {
+      setCalendarData(null);
+      setHasConnectionError(true);
+      console.error("Error fetching calendar data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCampus]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+    if (isCefetMainUnavailable) {
+      setLoading(false);
+      setCalendarData(null);
+      setHasConnectionError(true);
+      return;
+    }
 
-        if (!campusCalendarsLinks[selectedCampus]) {
-          throw new Error(`Campus link not found for key: ${selectedCampus}`);
-        }
-
-        const response = await fetch(
-          `/api/v1/calendars?url=${campusCalendarsLinks[selectedCampus]}`,
-          { next: { revalidate: 0 } }
-        );
-        const data: CalendarResponse = await response.json();
-        setCalendarData(data);
-      } catch (error: unknown) {
-        setCalendarData(null);
-        console.error("Error fetching calendar data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, [selectedCampus]);
+  }, [fetchData, isCefetMainUnavailable]);
+
+  const handleRetry = async () => {
+    setHasConnectionError(false);
+    await refresh();
+    await fetchData();
+  };
 
   const handleCampusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedCampus(event.target.value);
   };
+
+  if (isCefetMainUnavailable || (!loading && hasConnectionError)) {
+    return (
+      <div className={`container ${styles.unavailableWrapper}`}>
+        <SystemUnavailable
+          icon={<Calendar weight="duotone" />}
+          title="Calendário acadêmico indisponível"
+          onRetry={handleRetry}
+          isRetrying={isChecking || loading}
+        />
+      </div>
+    );
+  }
 
   if (loading && !calendarData) {
     return (

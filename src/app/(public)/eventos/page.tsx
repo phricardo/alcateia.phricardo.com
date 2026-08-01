@@ -5,9 +5,11 @@ import React, { useState, useEffect } from "react";
 import { EventsResponse } from "@/@types/eventsResponse.type";
 import { campusDisplayNames } from "@/utils/constants.util";
 import { formatDate } from "@/utils/formatarData.util";
-import { FunnelSimple } from "@phosphor-icons/react";
+import { CalendarStar, FunnelSimple } from "@phosphor-icons/react";
 import CopyButton from "@/components/CopyButton/CopyButton";
 import { SkeletonLoading } from "@/components/SkeletonLoading/SkeletonLoading";
+import { SystemUnavailable } from "@/components/SystemUnavailable/SystemUnavailable";
+import { useCefetStatus } from "@/hooks/useCefetStatus";
 import styles from "./page.module.css";
 import Image from "next/image";
 
@@ -22,14 +24,16 @@ export default function EventsPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [data, setData] = useState<EventsResponse | null>(null);
   const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
+  const { checks, isChecking, refresh } = useCefetStatus();
+  const isCefetMainUnavailable = checks.main === false;
 
-  const buildURL = (): string => {
+  const buildURL = React.useCallback((): string => {
     let url = `/api/v1/events?page=${currentPage}`;
     if (selectedCampus) url += `&campus=${selectedCampus}`;
     return url;
-  };
+  }, [currentPage, selectedCampus]);
 
-  const handleFetchResponse = async (
+  const handleFetchResponse = React.useCallback(async (
     response: Response
   ): Promise<EventsResponse> => {
     if (!response.ok) {
@@ -43,18 +47,26 @@ export default function EventsPage() {
       throw new Error(JSON.stringify(errorPayload));
     }
     return (await response.json()) as EventsResponse;
-  };
+  }, []);
 
-  const handleError = (error: unknown) => {
+  const handleError = React.useCallback((error: unknown) => {
     if (error instanceof Error) {
-      const err = JSON.parse(error.message) as ErrorPayload;
-      setError(err);
+      try {
+        const err = JSON.parse(error.message) as ErrorPayload;
+        setError(err);
+      } catch {
+        setError({
+          message: "Serviços temporariamente desligados.",
+          isSearchError: false,
+        });
+      }
     }
-  };
+  }, []);
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const url = buildURL();
       const response = await fetch(url, { cache: "no-store" });
       const data = await handleFetchResponse(response);
@@ -64,11 +76,21 @@ export default function EventsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildURL, handleError, handleFetchResponse]);
 
   useEffect(() => {
+    if (isCefetMainUnavailable) {
+      setLoading(false);
+      setData(null);
+      setError({
+        message: "Serviços temporariamente desligados.",
+        isSearchError: false,
+      });
+      return;
+    }
+
     fetchData();
-  }, [currentPage, selectedCampus]);
+  }, [fetchData, isCefetMainUnavailable]);
 
   useEffect(() => {
     if (error && !error.isSearchError) setData(null);
@@ -90,6 +112,21 @@ export default function EventsPage() {
       setCurrentPage(newPage);
     }, 500);
   };
+
+  const handleRetry = async () => {
+    setError(null);
+    await refresh();
+    await fetchData();
+  };
+
+  const shouldShowUnavailable =
+    isCefetMainUnavailable ||
+    (!loading && Boolean(error && !error.isSearchError)) ||
+    (!loading &&
+      Boolean(data && data.items.length === 0) &&
+      checks.main === false);
+  const shouldShowLoading =
+    loading || (isChecking && (!data || data.items.length === 0));
 
   return (
     <div className={styles.feed}>
@@ -114,13 +151,20 @@ export default function EventsPage() {
       </div>
 
       <div className={styles.eventsWrapper}>
-        {loading ? (
+        {shouldShowLoading ? (
           <div className={styles.skeletonWrapper}>
             {Array.from({ length: 5 }).map((_, index) => (
               <SkeletonLoading key={index} height="150px" width="100%" />
             ))}
           </div>
-        ) : !data ? (
+        ) : shouldShowUnavailable ? (
+          <SystemUnavailable
+            icon={<CalendarStar weight="duotone" />}
+            title="Eventos indisponíveis"
+            onRetry={handleRetry}
+            isRetrying={isChecking || loading}
+          />
+        ) : !data || data.items.length === 0 ? (
           <p>Nenhum conteúdo encontrado.</p>
         ) : (
           data.items.map((item) => (

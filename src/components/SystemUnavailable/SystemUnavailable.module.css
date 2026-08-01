@@ -1,0 +1,59 @@
+.wrapper {
+  width: 100%;
+  min-height: 18rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  border: 1px solid #d6e0ee;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #f8fbff 0%, #ffffff 56%, #fff8ed 100%);
+  color: #102033;
+}
+
+.iconWrapper {
+  width: 4rem;
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fff3d1;
+  color: #b45309;
+}
+
+.iconWrapper svg {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.content h2 {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: #0f2742;
+}
+
+.content p {
+  max-width: 32rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #45576b;
+}
+
+.wrapper button {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 480px) {
+  .wrapper {
+    padding: 1.5rem;
+  }
+}

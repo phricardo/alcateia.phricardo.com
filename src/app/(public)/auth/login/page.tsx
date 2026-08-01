@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
+import { WarningCircle } from "@phosphor-icons/react";
 import SubmitButton from "@/components/Button/SubmitButton";
 import styles from "./LoginPage.module.css";
 import PasswordInput from "@/components/PasswordInput/PasswordInput";
@@ -11,6 +12,7 @@ import LoginAction from "@/actions/login.action";
 import toast from "react-hot-toast";
 import { loadUser } from "@/contexts/user-context";
 import { CPA_STATUS_GET } from "@/functions/api";
+import { useCefetStatus } from "@/hooks/useCefetStatus";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +22,10 @@ export default function LoginPage() {
     data: null,
   });
   const [cpaActive, setCpaActive] = React.useState<boolean | null>(null);
+  const { checks, isChecking: isCefetChecking, refresh } = useCefetStatus();
+  const isPortalUnavailable = !isCefetChecking && checks.alunos !== true;
+  const isLoginDisabled =
+    cpaActive === true || isCefetChecking || checks.alunos !== true;
 
   React.useEffect(() => {
     if (state && state.ok) {
@@ -37,6 +43,11 @@ export default function LoginPage() {
   React.useEffect(() => {
     let cancelled = false;
 
+    if (checks.alunos !== true) {
+      setCpaActive(null);
+      return;
+    }
+
     async function checkCpa() {
       try {
         const { url, options } = CPA_STATUS_GET();
@@ -53,7 +64,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [checks.alunos]);
 
   return (
     <div className={styles.loginWrapper}>
@@ -74,6 +85,40 @@ export default function LoginPage() {
         </div>
       )}
 
+      {!cpaActive && isCefetChecking && (
+        <div
+          className={`${styles.statusNotice} ${styles.checkingNotice}`}
+          role="status"
+        >
+          <WarningCircle weight="duotone" />
+          <span>
+            Estamos verificando a conexão com o Portal do Aluno do Cefet/RJ. O
+            login será liberado assim que o sistema responder.
+          </span>
+        </div>
+      )}
+
+      {!cpaActive && isPortalUnavailable && (
+        <div
+          className={`${styles.statusNotice} ${styles.offlineNotice}`}
+          role="alert"
+        >
+          <WarningCircle weight="duotone" />
+          <span>
+            Não estamos conseguindo conectar ao Portal do Aluno do Cefet/RJ. O
+            login ficará indisponível até o sistema voltar.
+          </span>
+          <button
+            type="button"
+            className={styles.retryButton}
+            onClick={() => refresh()}
+            disabled={isCefetChecking}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
       <form action={action}>
         <label htmlFor="username">
           Usuario:
@@ -82,7 +127,7 @@ export default function LoginPage() {
             name="username"
             id="username"
             required
-            disabled={cpaActive || undefined}
+            disabled={isLoginDisabled || undefined}
           />
         </label>
 
@@ -92,7 +137,7 @@ export default function LoginPage() {
             name="password"
             id="password"
             required
-            disabled={cpaActive || undefined}
+            disabled={isLoginDisabled || undefined}
           />
         </label>
 
@@ -106,7 +151,9 @@ export default function LoginPage() {
           </Link>
         </p>
 
-        <SubmitButton disabled={cpaActive || undefined}>Entrar</SubmitButton>
+        <SubmitButton disabled={isLoginDisabled || undefined}>
+          Entrar
+        </SubmitButton>
       </form>
     </div>
   );

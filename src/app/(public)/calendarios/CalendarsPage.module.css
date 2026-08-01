@@ -4,6 +4,10 @@
   gap: 1rem;
 }
 
+.unavailableWrapper {
+  padding-top: 1rem;
+}
+
 .calendars {
   min-height: 100dvh;
 }

@@ -16,7 +16,7 @@ import { useCefetStatus } from "@/hooks/useCefetStatus";
 
 export function Header() {
   const pathname = usePathname();
-  const status = useCefetStatus();
+  const { status } = useCefetStatus();
   const { user, isLoading } = React.useContext(UserContext);
   const [greeting, setGreeting] = React.useState<string | null>(null);
 
