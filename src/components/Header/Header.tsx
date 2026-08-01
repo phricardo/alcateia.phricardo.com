@@ -112,13 +112,16 @@ export function Header() {
                   ? styles.partial
                   : status === "offline"
                   ? styles.offline
+                  : status === "checking"
+                  ? styles.checking
                   : ""
               }`}
             />
             <span className={styles.statusText}>
               {status === "online" && "Conectado ao sistema do CEFET/RJ"}
               {status === "parcial" && "Conexão parcial com o sistema"}
-              {status === "offline" && "Sem conexão com o sistema"}
+              {status === "offline" &&
+                "Sem conexão com o sistema do Cefet/RJ"}
               {status === "checking" && "Verificando conexão..."}
             </span>
           </div>
