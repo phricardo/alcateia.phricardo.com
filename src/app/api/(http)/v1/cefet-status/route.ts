@@ -7,6 +7,7 @@ type CefetStatus = "online" | "parcial" | "offline";
 
 const TIMEOUT_MS = 5000;
 const CACHE_CONTROL = "no-store, no-cache, max-age=0, must-revalidate";
+const CPA_ORIGIN = "https://cpa.cefet-rj.br";
 
 const HTML_FETCH_HEADERS = {
   "User-Agent":
@@ -49,10 +50,19 @@ function jsonStatusResponse({
   return response;
 }
 
+function hasOrigin(url: string, origin: string): boolean {
+  try {
+    return new URL(url).origin === origin;
+  } catch {
+    return false;
+  }
+}
+
 export async function GET() {
   const fetchWithTimeout = (
     url: string,
-    expectedPatterns: RegExp[]
+    expectedPatterns: RegExp[],
+    acceptedRedirectOrigin?: string,
   ): Promise<boolean> => {
     return new Promise((resolve) => {
       const controller = new AbortController();
@@ -75,8 +85,11 @@ export async function GET() {
           const hasExpectedContent = expectedPatterns.some((pattern) =>
             pattern.test(html)
           );
+          const isAcceptedRedirect =
+            acceptedRedirectOrigin !== undefined &&
+            hasOrigin(res.url, acceptedRedirectOrigin);
 
-          resolve(hasContent && hasExpectedContent);
+          resolve(hasContent && (hasExpectedContent || isAcceptedRedirect));
         })
         .catch(() => {
           resolve(false);
@@ -91,7 +104,8 @@ export async function GET() {
     fetchWithTimeout("https://www.cefet-rj.br/", MAIN_SITE_PATTERNS),
     fetchWithTimeout(
       "https://alunos.cefet-rj.br/aluno/login.action?error=",
-      ALUNOS_SITE_PATTERNS
+      ALUNOS_SITE_PATTERNS,
+      CPA_ORIGIN,
     ),
   ]);
 

@@ -5,9 +5,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { BASE_URL, extractPnotifyText } from "@/app/api/utils/links.util";
 
 const MAX_RETRIES = 2;
+const CPA_ORIGIN = "https://cpa.cefet-rj.br";
+const CPA_REFERER = `${CPA_ORIGIN}/`;
 
 const CPA_BLOCK_MESSAGE =
   "Login temporariamente indisponível devido ao período de CPA. Tente novamente em alguns dias.";
+
+function isCpaRedirect(location: string | undefined): boolean {
+  if (!location) return false;
+
+  try {
+    return new URL(location, BASE_URL).origin === CPA_ORIGIN;
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +47,19 @@ export async function POST(request: NextRequest) {
         validateStatus: (s) => s >= 200 && s < 500,
       }),
     );
+
+    const portalResponse = await client.get(`${BASE_URL}/aluno/`, {
+      maxRedirects: 0,
+    });
+
+    if (isCpaRedirect(portalResponse.headers.location as string | undefined)) {
+      await client.get(`${BASE_URL}/aluno/`, {
+        headers: {
+          Referer: CPA_REFERER,
+        },
+        maxRedirects: 10,
+      });
+    }
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const response = await client.post(

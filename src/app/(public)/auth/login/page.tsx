@@ -24,8 +24,7 @@ export default function LoginPage() {
   const [cpaActive, setCpaActive] = React.useState<boolean | null>(null);
   const { checks, isChecking: isCefetChecking, refresh } = useCefetStatus();
   const isPortalUnavailable = !isCefetChecking && checks.alunos !== true;
-  const isLoginDisabled =
-    cpaActive === true || isCefetChecking || checks.alunos !== true;
+  const isLoginDisabled = isCefetChecking || checks.alunos !== true;
 
   React.useEffect(() => {
     if (state && state.ok) {
@@ -80,8 +79,8 @@ export default function LoginPage() {
 
       {cpaActive && (
         <div className={styles.cpaNotice} role="alert">
-          O login esta temporariamente indisponivel durante o periodo de CPA do
-          CEFET/RJ. Tente novamente em alguns dias.
+          O Portal do Aluno está em período de CPA. Você pode entrar normalmente;
+          seguiremos o fluxo oficial do Portal.
         </div>
       )}
 
