@@ -5,9 +5,7 @@ import { LOGIN_POST } from "@/functions/api";
 import { IAuthenticatedUser } from "@/@types/authUser.type";
 import { IActionResponse } from "@/@types/actionResponse.type";
 import handleActionError from "@/functions/handleActionError";
-
-const CPA_ERROR_MESSAGE =
-  "Login temporariamente indisponível devido ao período de CPA. Tente novamente em alguns dias.";
+import { CPA_LOGIN_UNAVAILABLE_MESSAGE } from "@/constants/auth";
 
 export default async function LoginAction(
   state: {},
@@ -25,7 +23,7 @@ export default async function LoginAction(
     const json = await response.json();
     if (!response.ok) {
       if (response.status === 503) {
-        throw new Error(CPA_ERROR_MESSAGE);
+        throw new Error(CPA_LOGIN_UNAVAILABLE_MESSAGE);
       }
       throw new Error(json.error || "Tente novamente mais tarde.");
     }

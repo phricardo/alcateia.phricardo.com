@@ -3,13 +3,13 @@ import tough from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import { NextRequest, NextResponse } from "next/server";
 import { BASE_URL, extractPnotifyText } from "@/app/api/utils/links.util";
+import Logger from "@/app/api/utils/logger.util";
+import { CPA_LOGIN_UNAVAILABLE_MESSAGE } from "@/constants/auth";
 
 const MAX_RETRIES = 2;
 const CPA_ORIGIN = "https://cpa.cefet-rj.br";
 const CPA_REFERER = `${CPA_ORIGIN}/`;
-
-const CPA_BLOCK_MESSAGE =
-  "Login temporariamente indisponível devido ao período de CPA. Tente novamente em alguns dias.";
+const logger = new Logger();
 
 function isCpaRedirect(location: string | undefined): boolean {
   if (!location) return false;
@@ -52,7 +52,11 @@ export async function POST(request: NextRequest) {
       maxRedirects: 0,
     });
 
-    if (isCpaRedirect(portalResponse.headers.location as string | undefined)) {
+    const wasRedirectedToCpa = isCpaRedirect(
+      portalResponse.headers.location as string | undefined,
+    );
+
+    if (wasRedirectedToCpa) {
       await client.get(`${BASE_URL}/aluno/`, {
         headers: {
           Referer: CPA_REFERER,
@@ -81,6 +85,13 @@ export async function POST(request: NextRequest) {
 
       if (!SSO) {
         if (attempt === MAX_RETRIES) {
+          if (wasRedirectedToCpa) {
+            logger.warning(
+              `[Login CPA] Sessão SSO não foi criada após ${MAX_RETRIES} tentativas; retornando erro de CPA ao cliente.`,
+            );
+            throw new Error(CPA_LOGIN_UNAVAILABLE_MESSAGE);
+          }
+
           throw new Error("Tente novamente mais tarde.");
         }
         continue;
@@ -101,7 +112,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Tente novamente mais tarde.";
-    const status = message === CPA_BLOCK_MESSAGE ? 503 : 400;
+    const status = message === CPA_LOGIN_UNAVAILABLE_MESSAGE ? 503 : 400;
 
     return NextResponse.json({ error: message }, { status });
   }

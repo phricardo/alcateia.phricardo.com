@@ -79,8 +79,17 @@ export default function LoginPage() {
 
       {cpaActive && (
         <div className={styles.cpaNotice} role="alert">
-          O Portal do Aluno está em período de CPA. Você pode entrar normalmente;
-          seguiremos o fluxo oficial do Portal.
+          <span>
+            O Portal do Aluno está redirecionando o acesso para a CPA. Por isso,
+            o Alcateia pode não conseguir concluir o login neste momento.
+          </span>
+          <Link
+            href="https://alunos.cefet-rj.br/aluno/login.action"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Abrir Portal do Aluno
+          </Link>
         </div>
       )}
 
