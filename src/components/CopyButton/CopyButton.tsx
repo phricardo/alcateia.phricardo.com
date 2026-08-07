@@ -4,10 +4,11 @@ interface CopyButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> {
   buttonText: string;
   valueToCopy: string;
+  icon?: React.ReactNode;
 }
 
 export default function CopyButton(props: CopyButtonProps) {
-  const { buttonText, valueToCopy, ...restProps } = props;
+  const { buttonText, valueToCopy, icon, ...restProps } = props;
   const [buttonTextShow, setButtonTextShow] = useState(buttonText);
 
   async function handleCopy() {
@@ -27,7 +28,8 @@ export default function CopyButton(props: CopyButtonProps) {
 
   return (
     <button {...restProps} onClick={handleCopy}>
-      {buttonTextShow}
+      {icon}
+      <span>{buttonTextShow}</span>
     </button>
   );
 }

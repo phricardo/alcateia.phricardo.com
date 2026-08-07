@@ -132,16 +132,55 @@
   text-align: center;
 }
 
-.pagination {
+.feedStatus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 1rem 0;
+  min-height: 2.5rem;
+  margin: 1.25rem 0 0.5rem;
 }
 
-.pagination .pageNav {
-  display: flex;
+.feedLoading,
+.feedEnd,
+.feedLoadError {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  width: 100%;
+  color: #356ebc;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.feedLoading svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: feed-spinner 0.8s linear infinite;
+}
+
+.feedLoadError {
+  flex-wrap: wrap;
+  color: #9a3412;
+}
+
+.feedLoadError button {
+  padding: 0.4rem 0.7rem;
+  color: #ffffff;
+  font-size: 0.8rem;
+  text-transform: none;
+}
+
+.feedSentinel {
+  width: 100%;
+  height: 1px;
+}
+
+@keyframes feed-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .skeletonWrapper {

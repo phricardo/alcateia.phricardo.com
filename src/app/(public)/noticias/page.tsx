@@ -1,9 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 
-import { FunnelSimple, Newspaper } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  Buildings,
+  CalendarBlank,
+  CircleNotch,
+  FunnelSimple,
+  LinkSimple,
+  Newspaper,
+  Tag,
+} from "@phosphor-icons/react";
 import { formatDate } from "@/utils/formatarData.util";
 import { campusDisplayNames } from "@/utils/constants.util";
 import CopyButton from "@/components/CopyButton/CopyButton";
@@ -11,6 +20,7 @@ import { NewsResponse, NewsItem } from "@/@types/newsResponse.type";
 import { SkeletonLoading } from "@/components/SkeletonLoading/SkeletonLoading";
 import { SystemUnavailable } from "@/components/SystemUnavailable/SystemUnavailable";
 import { useCefetStatus } from "@/hooks/useCefetStatus";
+import { useInfiniteFeed } from "@/hooks/useInfiniteFeed";
 import styles from "./page.module.css";
 
 type ErrorPayload = {
@@ -19,19 +29,9 @@ type ErrorPayload = {
 };
 
 export default function NewsPage() {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<ErrorPayload | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [data, setData] = useState<NewsResponse | null>(null);
-  const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
+  const [selectedCampus, setSelectedCampus] = React.useState<string | null>(null);
   const { checks, isChecking, refresh } = useCefetStatus();
   const isCefetMainUnavailable = checks.main === false;
-
-  const buildURL = React.useCallback((): string => {
-    let url = `/api/v1/news?page=${currentPage}`;
-    if (selectedCampus) url += `&campus=${selectedCampus}`;
-    return url;
-  }, [currentPage, selectedCampus]);
 
   const handleFetchResponse = React.useCallback(async (
     response: Response
@@ -49,84 +49,64 @@ export default function NewsPage() {
     return (await response.json()) as NewsResponse;
   }, []);
 
-  const handleError = React.useCallback((error: unknown) => {
-    if (error instanceof Error) {
-      try {
-        const err = JSON.parse(error.message) as ErrorPayload;
-        setError(err);
-      } catch {
-        setError({
-          message: "Serviços temporariamente desligados.",
-          isSearchError: false,
-        });
-      }
-    }
-  }, []);
+  const fetchPage = React.useCallback(async (
+    page: number,
+    signal: AbortSignal,
+  ): Promise<NewsResponse> => {
+    let url = `/api/v1/news?page=${page}&pageSize=10`;
+    if (selectedCampus) url += `&campus=${selectedCampus}`;
 
-  const fetchData = React.useCallback(async () => {
+    const response = await fetch(url, { cache: "no-store", signal });
+    return handleFetchResponse(response);
+  }, [handleFetchResponse, selectedCampus]);
+
+  const {
+    items,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    initialError,
+    loadMoreError,
+    sentinelRef,
+    reload,
+    retryLoadMore,
+  } = useInfiniteFeed({
+    enabled: !isCefetMainUnavailable,
+    fetchPage,
+    queryKey: selectedCampus || "all-campuses",
+  });
+
+  const initialErrorPayload = React.useMemo<ErrorPayload | null>(() => {
+    if (!(initialError instanceof Error)) return null;
+
     try {
-      setLoading(true);
-      setError(null);
-      const url = buildURL();
-      const response = await fetch(url, { cache: "no-store" });
-      const data = await handleFetchResponse(response);
-      setData(data);
-    } catch (error: unknown) {
-      handleError(error);
-    } finally {
-      setLoading(false);
-    }
-  }, [buildURL, handleError, handleFetchResponse]);
-
-  useEffect(() => {
-    if (isCefetMainUnavailable) {
-      setLoading(false);
-      setData(null);
-      setError({
+      return JSON.parse(initialError.message) as ErrorPayload;
+    } catch {
+      return {
         message: "Serviços temporariamente desligados.",
         isSearchError: false,
-      });
-      return;
+      };
     }
-
-    fetchData();
-  }, [fetchData, isCefetMainUnavailable]);
-
-  useEffect(() => {
-    if (error && !error.isSearchError) setData(null);
-  }, [error]);
+  }, [initialError]);
 
   const handleCampusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setError(null);
     setSelectedCampus(event.target.value);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (newPage: number) => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
-
-    setTimeout(() => {
-      setCurrentPage(newPage);
-    }, 500);
   };
 
   const handleRetry = async () => {
-    setError(null);
     await refresh();
-    await fetchData();
+    reload();
   };
 
   const shouldShowUnavailable =
     isCefetMainUnavailable ||
-    (!loading && Boolean(error && !error.isSearchError)) ||
-    (!loading &&
-      Boolean(data && data.items.length === 0) &&
-      checks.main === false);
+    Boolean(initialErrorPayload && !initialErrorPayload.isSearchError);
   const shouldShowLoading =
-    loading || (isChecking && (!data || data.items.length === 0));
+    isInitialLoading || (isChecking && items.length === 0);
 
   return (
     <div className={styles.feed}>
@@ -162,66 +142,84 @@ export default function NewsPage() {
             icon={<Newspaper weight="duotone" />}
             title="Notícias indisponíveis"
             onRetry={handleRetry}
-            isRetrying={isChecking || loading}
+            isRetrying={isChecking || isInitialLoading}
           />
-        ) : !data || data.items.length === 0 ? (
+        ) : items.length === 0 ? (
           <p>Nenhum conteúdo encontrado.</p>
         ) : (
-          data.items.map((item: NewsItem) => (
-            <div key={item.guid} className={styles.newsItem}>
-              <div className={styles.newsItemHeader}>
-                <div className={styles.newsItemDetails}>
-                  <span>{formatDate(item.pubDate)}</span>
-                  {item.isEveryone ? (
-                    <span>Geral</span>
-                  ) : (
-                    <span>
-                      {item.campus && `Uned ${campusDisplayNames[item.campus]}`}
+          <>
+            {items.map((item: NewsItem) => (
+              <div key={item.guid} className={styles.newsItem}>
+                <div className={styles.newsItemHeader}>
+                  <div className={styles.newsItemDetails}>
+                    <span className={styles.detailPill}>
+                      <CalendarBlank weight="duotone" aria-hidden="true" />
+                      {formatDate(item.pubDate)}
                     </span>
-                  )}
-                </div>
-                <div>
+                    {item.isEveryone ? (
+                      <span className={styles.detailPill}>
+                        <Tag weight="duotone" aria-hidden="true" />
+                        Geral
+                      </span>
+                    ) : (
+                      item.campus && (
+                        <span className={styles.detailPill}>
+                          <Buildings weight="duotone" aria-hidden="true" />
+                          Uned {campusDisplayNames[item.campus]}
+                        </span>
+                      )
+                    )}
+                  </div>
                   <CopyButton
                     className={styles.copyLink}
                     valueToCopy={item.guid}
-                    buttonText="Copiar Link"
+                    buttonText="Copiar link"
+                    icon={<LinkSimple weight="bold" aria-hidden="true" />}
                   />
                 </div>
+                <Link
+                  className={styles.newsTitleLink}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <h1>{item.title}</h1>
+                </Link>
+                <p>{item.description}</p>
+                <Link
+                  className={styles.readMoreLink}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Ler mais
+                  <ArrowRight weight="bold" aria-hidden="true" />
+                </Link>
               </div>
-              <Link href={item.link} target="_blank">
-                <h1>{item.title}</h1>
-              </Link>
-              <p>{item.description}</p>
-              <Link href={item.link} target="_blank">
-                Ler Mais
-              </Link>
+            ))}
+
+            <div className={styles.feedStatus}>
+              {isLoadingMore ? (
+                <div className={styles.feedLoading} role="status" aria-live="polite">
+                  <CircleNotch weight="bold" aria-hidden="true" />
+                  Carregando mais notícias...
+                </div>
+              ) : loadMoreError ? (
+                <div className={styles.feedLoadError} role="alert">
+                  <span>Não foi possível carregar mais notícias.</span>
+                  <button type="button" onClick={retryLoadMore}>
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : hasMore ? (
+                <div ref={sentinelRef} className={styles.feedSentinel} aria-hidden="true" />
+              ) : (
+                <p className={styles.feedEnd}>Você chegou ao fim das notícias.</p>
+              )}
             </div>
-          ))
+          </>
         )}
       </div>
-
-      {data && (
-        <div className={styles.pagination}>
-          <p>
-            Página {data.pagination.page} de {data.pagination.totalPages}
-          </p>
-
-          <div className={styles.pageNav}>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === data.pagination.totalPages}
-            >
-              Próximo
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

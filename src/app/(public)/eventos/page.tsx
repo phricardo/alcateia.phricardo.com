@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { EventsResponse } from "@/@types/eventsResponse.type";
 import { campusDisplayNames } from "@/utils/constants.util";
 import { formatDate } from "@/utils/formatarData.util";
-import { CalendarStar, FunnelSimple } from "@phosphor-icons/react";
+import { CalendarStar, CircleNotch, FunnelSimple } from "@phosphor-icons/react";
 import CopyButton from "@/components/CopyButton/CopyButton";
 import { SkeletonLoading } from "@/components/SkeletonLoading/SkeletonLoading";
 import { SystemUnavailable } from "@/components/SystemUnavailable/SystemUnavailable";
 import { useCefetStatus } from "@/hooks/useCefetStatus";
+import { useInfiniteFeed } from "@/hooks/useInfiniteFeed";
 import styles from "./page.module.css";
 import Image from "next/image";
 
@@ -19,19 +20,9 @@ type ErrorPayload = {
 };
 
 export default function EventsPage() {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<ErrorPayload | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [data, setData] = useState<EventsResponse | null>(null);
-  const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
+  const [selectedCampus, setSelectedCampus] = React.useState<string | null>(null);
   const { checks, isChecking, refresh } = useCefetStatus();
   const isCefetMainUnavailable = checks.main === false;
-
-  const buildURL = React.useCallback((): string => {
-    let url = `/api/v1/events?page=${currentPage}`;
-    if (selectedCampus) url += `&campus=${selectedCampus}`;
-    return url;
-  }, [currentPage, selectedCampus]);
 
   const handleFetchResponse = React.useCallback(async (
     response: Response
@@ -49,84 +40,64 @@ export default function EventsPage() {
     return (await response.json()) as EventsResponse;
   }, []);
 
-  const handleError = React.useCallback((error: unknown) => {
-    if (error instanceof Error) {
-      try {
-        const err = JSON.parse(error.message) as ErrorPayload;
-        setError(err);
-      } catch {
-        setError({
-          message: "Serviços temporariamente desligados.",
-          isSearchError: false,
-        });
-      }
-    }
-  }, []);
+  const fetchPage = React.useCallback(async (
+    page: number,
+    signal: AbortSignal,
+  ): Promise<EventsResponse> => {
+    let url = `/api/v1/events?page=${page}&pageSize=10`;
+    if (selectedCampus) url += `&campus=${selectedCampus}`;
 
-  const fetchData = React.useCallback(async () => {
+    const response = await fetch(url, { cache: "no-store", signal });
+    return handleFetchResponse(response);
+  }, [handleFetchResponse, selectedCampus]);
+
+  const {
+    items,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    initialError,
+    loadMoreError,
+    sentinelRef,
+    reload,
+    retryLoadMore,
+  } = useInfiniteFeed({
+    enabled: !isCefetMainUnavailable,
+    fetchPage,
+    queryKey: selectedCampus || "all-campuses",
+  });
+
+  const initialErrorPayload = React.useMemo<ErrorPayload | null>(() => {
+    if (!(initialError instanceof Error)) return null;
+
     try {
-      setLoading(true);
-      setError(null);
-      const url = buildURL();
-      const response = await fetch(url, { cache: "no-store" });
-      const data = await handleFetchResponse(response);
-      setData(data);
-    } catch (error: unknown) {
-      handleError(error);
-    } finally {
-      setLoading(false);
-    }
-  }, [buildURL, handleError, handleFetchResponse]);
-
-  useEffect(() => {
-    if (isCefetMainUnavailable) {
-      setLoading(false);
-      setData(null);
-      setError({
+      return JSON.parse(initialError.message) as ErrorPayload;
+    } catch {
+      return {
         message: "Serviços temporariamente desligados.",
         isSearchError: false,
-      });
-      return;
+      };
     }
-
-    fetchData();
-  }, [fetchData, isCefetMainUnavailable]);
-
-  useEffect(() => {
-    if (error && !error.isSearchError) setData(null);
-  }, [error]);
+  }, [initialError]);
 
   const handleCampusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setError(null);
     setSelectedCampus(event.target.value);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (newPage: number) => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
-
-    setTimeout(() => {
-      setCurrentPage(newPage);
-    }, 500);
   };
 
   const handleRetry = async () => {
-    setError(null);
     await refresh();
-    await fetchData();
+    reload();
   };
 
   const shouldShowUnavailable =
     isCefetMainUnavailable ||
-    (!loading && Boolean(error && !error.isSearchError)) ||
-    (!loading &&
-      Boolean(data && data.items.length === 0) &&
-      checks.main === false);
+    Boolean(initialErrorPayload && !initialErrorPayload.isSearchError);
   const shouldShowLoading =
-    loading || (isChecking && (!data || data.items.length === 0));
+    isInitialLoading || (isChecking && items.length === 0);
 
   return (
     <div className={styles.feed}>
@@ -162,78 +133,78 @@ export default function EventsPage() {
             icon={<CalendarStar weight="duotone" />}
             title="Eventos indisponíveis"
             onRetry={handleRetry}
-            isRetrying={isChecking || loading}
+            isRetrying={isChecking || isInitialLoading}
           />
-        ) : !data || data.items.length === 0 ? (
+        ) : items.length === 0 ? (
           <p>Nenhum conteúdo encontrado.</p>
         ) : (
-          data.items.map((item) => (
-            <div key={item.guid} className={styles.eventsItem}>
-              {item.imageUrl && (
-                <div>
-                  <Image
-                    width={200}
-                    height={200}
-                    src={item.imageUrl}
-                    alt={item.title}
-                  />
-                </div>
-              )}
-
-              <div>
-                <div className={styles.eventsItemHeader}>
-                  <div className={styles.eventsItemDetails}>
-                    <span>{formatDate(item.pubDate)}</span>
-                    {item.isEveryone ? (
-                      <span>Geral</span>
-                    ) : (
-                      <span>Uned {campusDisplayNames[item.campus]}</span>
-                    )}
-                  </div>
+          <>
+            {items.map((item) => (
+              <div key={item.guid} className={styles.eventsItem}>
+                {item.imageUrl && (
                   <div>
-                    <CopyButton
-                      className={styles.copyLink}
-                      valueToCopy={item.guid}
-                      buttonText="Copiar Link"
+                    <Image
+                      width={200}
+                      height={200}
+                      src={item.imageUrl}
+                      alt={item.title}
                     />
                   </div>
-                </div>
 
-                <Link href={item.link} target="_blank">
-                  <h1>{item.title}</h1>
-                </Link>
-                <p>{item.description}</p>
-                <Link href={item.link} target="_blank">
-                  Ler Mais
-                </Link>
+                )}
+
+                <div>
+                  <div className={styles.eventsItemHeader}>
+                    <div className={styles.eventsItemDetails}>
+                      <span>{formatDate(item.pubDate)}</span>
+                      {item.isEveryone ? (
+                        <span>Geral</span>
+                      ) : (
+                        <span>Uned {campusDisplayNames[item.campus]}</span>
+                      )}
+                    </div>
+                    <div>
+                      <CopyButton
+                        className={styles.copyLink}
+                        valueToCopy={item.guid}
+                        buttonText="Copiar Link"
+                      />
+                    </div>
+                  </div>
+
+                  <Link href={item.link} target="_blank">
+                    <h1>{item.title}</h1>
+                  </Link>
+                  <p>{item.description}</p>
+                  <Link href={item.link} target="_blank">
+                    Ler Mais
+                  </Link>
+                </div>
               </div>
+            ))}
+
+            <div className={styles.feedStatus}>
+              {isLoadingMore ? (
+                <div className={styles.feedLoading} role="status" aria-live="polite">
+                  <CircleNotch weight="bold" aria-hidden="true" />
+                  Carregando mais eventos...
+                </div>
+              ) : loadMoreError ? (
+                <div className={styles.feedLoadError} role="alert">
+                  <span>Não foi possível carregar mais eventos.</span>
+                  <button type="button" onClick={retryLoadMore}>
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : hasMore ? (
+                <div ref={sentinelRef} className={styles.feedSentinel} aria-hidden="true" />
+              ) : (
+                <p className={styles.feedEnd}>Você chegou ao fim dos eventos.</p>
+              )}
             </div>
-          ))
+          </>
         )}
       </div>
-
-      {data && (
-        <div className={styles.pagination}>
-          <p>
-            Página {data.pagination.page} de {data.pagination.totalPages}
-          </p>
-
-          <div className={styles.pageNav}>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === data.pagination.totalPages}
-            >
-              Próximo
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
