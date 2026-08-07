@@ -31,10 +31,12 @@ function jsonStatusResponse({
   status,
   mainOK,
   alunosOK,
+  underCpa,
 }: {
   status: CefetStatus;
   mainOK: boolean;
   alunosOK: boolean;
+  underCpa: boolean;
 }) {
   const response = NextResponse.json({
     status,
@@ -43,6 +45,7 @@ function jsonStatusResponse({
       main: mainOK,
       alunos: alunosOK,
     },
+    underCpa,
   });
 
   response.headers.set("Cache-Control", CACHE_CONTROL);
@@ -63,7 +66,7 @@ export async function GET() {
     url: string,
     expectedPatterns: RegExp[],
     acceptedRedirectOrigin?: string,
-  ): Promise<boolean> => {
+  ): Promise<{ ok: boolean; underCpa: boolean }> => {
     return new Promise((resolve) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -76,7 +79,7 @@ export async function GET() {
       })
         .then(async (res) => {
           if (!res.ok) {
-            resolve(false);
+            resolve({ ok: false, underCpa: false });
             return;
           }
 
@@ -89,10 +92,13 @@ export async function GET() {
             acceptedRedirectOrigin !== undefined &&
             hasOrigin(res.url, acceptedRedirectOrigin);
 
-          resolve(hasContent && (hasExpectedContent || isAcceptedRedirect));
+          resolve({
+            ok: hasContent && (hasExpectedContent || isAcceptedRedirect),
+            underCpa: isAcceptedRedirect,
+          });
         })
         .catch(() => {
-          resolve(false);
+          resolve({ ok: false, underCpa: false });
         })
         .finally(() => {
           clearTimeout(id);
@@ -100,7 +106,7 @@ export async function GET() {
     });
   };
 
-  const [mainOK, alunosOK] = await Promise.all([
+  const [mainResult, alunosResult] = await Promise.all([
     fetchWithTimeout("https://www.cefet-rj.br/", MAIN_SITE_PATTERNS),
     fetchWithTimeout(
       "https://alunos.cefet-rj.br/aluno/login.action?error=",
@@ -108,14 +114,17 @@ export async function GET() {
       CPA_ORIGIN,
     ),
   ]);
+  const mainOK = mainResult.ok;
+  const alunosOK = alunosResult.ok;
+  const underCpa = alunosResult.underCpa;
 
   if (mainOK && alunosOK) {
-    return jsonStatusResponse({ status: "online", mainOK, alunosOK });
+    return jsonStatusResponse({ status: "online", mainOK, alunosOK, underCpa });
   }
 
   if (mainOK || alunosOK) {
-    return jsonStatusResponse({ status: "parcial", mainOK, alunosOK });
+    return jsonStatusResponse({ status: "parcial", mainOK, alunosOK, underCpa });
   }
 
-  return jsonStatusResponse({ status: "offline", mainOK, alunosOK });
+  return jsonStatusResponse({ status: "offline", mainOK, alunosOK, underCpa });
 }

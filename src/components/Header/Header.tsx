@@ -16,9 +16,19 @@ import { useCefetStatus } from "@/hooks/useCefetStatus";
 
 export function Header() {
   const pathname = usePathname();
-  const { status } = useCefetStatus();
+  const { status, underCpa } = useCefetStatus();
   const { user, isLoading } = React.useContext(UserContext);
   const [greeting, setGreeting] = React.useState<string | null>(null);
+  const isCpaPartial = underCpa && status !== "offline";
+  const statusMessage = isCpaPartial
+    ? "Parcialmente conectados ao sistema do CEFET/RJ"
+    : status === "online"
+    ? "Conectado ao sistema do CEFET/RJ"
+    : status === "parcial"
+    ? "Conexão parcial com o sistema do Cefet/RJ"
+    : status === "offline"
+    ? "Sem conexão com o sistema do Cefet/RJ"
+    : "Verificando conexão...";
 
   function getDisplayName(user: IAuthenticatedUser | null): string {
     if (user?.name) {
@@ -106,7 +116,9 @@ export function Header() {
           <div className={styles.statusWrapper}>
             <span
               className={`${styles.statusIndicator} ${
-                status === "online"
+                isCpaPartial
+                  ? styles.cpaPartial
+                  : status === "online"
                   ? styles.online
                   : status === "parcial"
                   ? styles.partial
@@ -117,14 +129,7 @@ export function Header() {
                   : ""
               }`}
             />
-            <span className={styles.statusText}>
-              {status === "online" && "Conectado ao sistema do CEFET/RJ"}
-              {status === "parcial" &&
-                "Conexão parcial com o sistema do Cefet/RJ"}
-              {status === "offline" &&
-                "Sem conexão com o sistema do Cefet/RJ"}
-              {status === "checking" && "Verificando conexão..."}
-            </span>
+            <span className={styles.statusText}>{statusMessage}</span>
           </div>
         </div>
       </div>

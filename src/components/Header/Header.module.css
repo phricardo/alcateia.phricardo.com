@@ -83,6 +83,11 @@
   animation: pulseYellow 1.5s infinite;
 }
 
+.cpaPartial {
+  background-color: #ff8408;
+  animation: pulseOrange 1.5s infinite;
+}
+
 .checking {
   background-color: #ffbb33;
   animation: pulseYellow 1.5s infinite;
@@ -116,6 +121,18 @@
   }
   100% {
     box-shadow: 0 0 0 0 rgba(255, 187, 51, 0);
+  }
+}
+
+@keyframes pulseOrange {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 132, 8, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 132, 8, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 132, 8, 0);
   }
 }
 

@@ -11,6 +11,7 @@ type StatusChecks = {
 type CefetStatusState = {
   status: Status;
   checks: StatusChecks;
+  underCpa: boolean;
   checkedAt: string | null;
   isChecking: boolean;
 };
@@ -22,6 +23,7 @@ type CefetStatusPayload = {
     alunos?: unknown;
   };
   checkedAt?: unknown;
+  underCpa?: unknown;
 };
 
 const DEFAULT_CHECKS: StatusChecks = {
@@ -45,6 +47,7 @@ export function useCefetStatus() {
   const [state, setState] = useState<CefetStatusState>({
     status: "checking",
     checks: DEFAULT_CHECKS,
+    underCpa: false,
     checkedAt: null,
     isChecking: true,
   });
@@ -68,6 +71,7 @@ export function useCefetStatus() {
           setState({
             status: "offline",
             checks: { main: false, alunos: false },
+            underCpa: false,
             checkedAt: null,
             isChecking: false,
           });
@@ -86,6 +90,7 @@ export function useCefetStatus() {
         setState({
           status: nextStatus,
           checks: normalizeChecks(data?.checks),
+          underCpa: data?.underCpa === true,
           checkedAt,
           isChecking: false,
         });
@@ -96,6 +101,7 @@ export function useCefetStatus() {
         setState({
           status: "offline",
           checks: { main: false, alunos: false },
+          underCpa: false,
           checkedAt: null,
           isChecking: false,
         });
